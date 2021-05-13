@@ -38,20 +38,20 @@ if __name__ == '__main__':
     # put all printed things to log file
     if args.init_nw_weight == 'default':
         start_epoch = 1
-        #timestamp = time.strftime('%Y%m%d-%H%M%S', time.localtime())
+        timestamp = time.strftime('%Y%m%d-%H%M%S', time.localtime())
     else:
         start_epoch = int(args.init_nw_weight.split('_')[1])+1
-        #timestamp = args.init_nw_weight.split('_')[8].split('.')[0]
+        timestamp = args.init_nw_weight.split('_')[8].split('.')[0]
 
-    #logfilename = './logs/attention_log_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'_'+timestamp+'.txt'
-    logfilename = './logs/log_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'.txt'
+    logfilename = './logs/attention_log_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'_'+timestamp+'.txt'
+    # logfilename = './logs/log_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'.txt'
     logfile = open(logfilename, 'a')
     sys.stdout = Logger(logfilename, sys.stdout)
 
     print(args)
 
-    #filename = './data/attention_data_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'_'+timestamp+'.txt'
-    filename = './data/data_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'.txt'
+    filename = './data/attention_data_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'_'+timestamp+'.txt'
+    # filename = './data/data_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'.txt'
 
     use_cuda = not args.no_cuda and torch.cuda.is_available()
     print("use_cuda: ",use_cuda)
@@ -126,8 +126,8 @@ if __name__ == '__main__':
         data_file.close()
 
         # save model per epoch
-        #modelpath = './tmp/attention_model_'+str(epoch)+'_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'_'+timestamp+'.pt'
-        modelpath = './tmp/model_'+str(epoch)+'_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'.pt'
+        modelpath = './tmp/attention_model_'+str(epoch)+'_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'_'+timestamp+'.pt'
+        # modelpath = './tmp/model_'+str(epoch)+'_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'.pt'
         torch.save(model.state_dict(), modelpath)
         # try:
         #     # pre_modelpath = './tmp/model_'+str(epoch-1)+'_'+str(args.channel)+'_lr_'+str(args.enc_lr)+'_D'+str(args.D)+'_'+str(args.num_block)+'_'+timestamp+'.pt'
