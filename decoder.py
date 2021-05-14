@@ -80,10 +80,10 @@ class DEC(torch.nn.Module):
             copy_out2[:, t:t + 1, :] = new_out2
         for i in range(self.args.block_len):
             if (i>=self.args.block_len-self.args.D-1):
-                rt_d = rnn_out2[:,self.args.block_len-1:self.args.block_len,:]
+                rt_d = copy_out2[:,self.args.block_len-1:self.args.block_len,:]
             else:
-                rt_d = rnn_out2[:,i+self.args.D:i+self.args.D+1,:]
-            rt = rnn_out1[:,i:i+1,:]
+                rt_d = copy_out2[:,i+self.args.D:i+self.args.D+1,:]
+            rt = copy_out1[:,i:i+1,:]
             rnn_out = torch.cat((rt, rt_d), dim=2)
             dec_out = self.dec_act(self.dec_outputs(rnn_out))
             if i==0:
