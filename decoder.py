@@ -32,9 +32,9 @@ class DEC(torch.nn.Module):
                                         dropout=args.dropout)
         #int(args.code_rate_n/args.code_rate_k)
         self.dec_outputs = torch.nn.Linear(2*args.dec_num_unit, 1)
-        self.attn = torch.nn.Linear(2*args.dec_num_unit, args.dec_num_unit, bias=False)
-        self.v = torch.nn.Linear(args.dec_num_unit, 1, bias=False)
-        self.context = torch.nn.Linear(2*args.dec_num_unit, args.dec_num_unit, bias=False)
+        self.attn = torch.nn.Linear(2*args.dec_num_unit, 1)
+        #self.v = torch.nn.Linear(args.dec_num_unit, 1, bias=False)
+        self.context = torch.nn.Linear(2*args.dec_num_unit, args.dec_num_unit)
     
     def dec_act(self, inputs):
         if self.args.dec_act == 'tanh':
@@ -57,11 +57,9 @@ class DEC(torch.nn.Module):
         # energy = [2,batch_size,t,dec_num_unit]
         # attention = [2,batch_size,1,t]
         hidden = hidden.unsqueeze(2).repeat(1, 1, t, 1)
-        #energy = torch.tanh(self.attn(torch.cat((hidden, hidden_prev), dim=3)))
-        #print(hidden.shape)
-        #print(hidden_prev.shape)
-        energy = torch.tanh(self.attn(torch.cat((hidden, hidden_prev), dim=3)))
-        attention = self.v(energy).transpose(2, 3)
+        energy = self.attn(torch.cat((hidden, hidden_prev), dim=3))
+        #attention = self.v(energy).transpose(2, 3)
+        attention = energy.transpose(2,3)
         return F.softmax(attention, dim=3)
     def forward(self, received):
         received = received.type(torch.FloatTensor).to(self.this_device)

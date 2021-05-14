@@ -32,6 +32,8 @@ class ENC(torch.nn.Module):
                                            dropout=0)
 
         self.enc_linear    = torch.nn.Linear(args.enc_num_unit, int(args.code_rate_n/args.code_rate_k))
+        self.attn = torch.nn.Linear(2 * args.enc_num_unit, 1)
+        self.context = torch.nn.Linear(2 * args.enc_num_unit, args.enc_num_unit)
 
     def set_precomp(self, mean_scalar, std_scalar):
         self.mean_scalar = mean_scalar.to(self.this_device)
@@ -83,9 +85,30 @@ class ENC(torch.nn.Module):
                 x_input_norm = torch.clamp(x_input_norm, -self.args.enc_truncate_limit, self.args.enc_truncate_limit)
 
             return x_input_norm
-
+    def attention(self,hidden, hidden_prev,t):
+        # hidden = [2,batch_size,1,dec_num_unit]
+        # hidden_prev = [2,batch_size,t,dec_num_unit]
+        # energy = [2,batch_size,t,dec_num_unit]
+        # attention = [2,batch_size,1,t]
+        hidden = hidden.unsqueeze(2).repeat(1, 1, t, 1)
+        energy = self.attn(torch.cat((hidden, hidden_prev), dim=3))
+        #attention = self.v(energy).transpose(2, 3)
+        attention = energy.transpose(2,3)
+        return F.softmax(attention, dim=3)
     def forward(self, inputs):
-        output, hidden = self.enc_rnn(inputs)
-        code      = self.enc_act(self.enc_linear(output))
+        for t in range(self.args.block_len):
+            if t == 0:
+                enc_out, hidden = self.enc_rnn(inputs[:, t:t + 1, :])
+                rnn_out = enc_out
+                hiddens = hidden.unsqueeze(2)
+            else:
+                enc_out, hidden = self.enc_rnn(inputs[:, t:t + 1, :], hidden)
+                rnn_out = torch.cat((rnn_out, enc_out), dim=1)
+                a = self.attention(hidden, hiddens, t)
+                c = torch.matmul(a, hiddens)
+
+                hiddens = torch.cat((hiddens, hidden.unsqueeze(2)), dim=2)
+                hidden = self.context(torch.cat((c.squeeze(2), hidden), dim=2))
+        code      = self.enc_act(self.enc_linear(rnn_out))
         codes = self.power_constraint(code)
         return codes

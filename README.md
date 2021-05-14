@@ -5,7 +5,7 @@
 ## How To Run
 
 ```bash
-git clone https://github.com/CruiseTian/LEARN.git && cd LEARN
+git clone https://github.com/Stilwl/LEARN.git && cd LEARN
 
 # 设置环境(以下两种选择一种即可)
 conda env create -f environment.yaml
