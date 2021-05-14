@@ -21,8 +21,6 @@ class DEC(torch.nn.Module):
         else:
             RNN_MODEL = torch.nn.RNN
 
-        self.dropout = torch.nn.Dropout(args.dropout)
-
         self.dec1_rnns = RNN_MODEL(int(args.code_rate_n/args.code_rate_k),  args.dec_num_unit,
                                                     num_layers=2, bias=True, batch_first=True,
                                                     dropout=args.dropout)
@@ -56,43 +54,30 @@ class DEC(torch.nn.Module):
         # hidden_prev = [2,batch_size,t,dec_num_unit]
         # energy = [2,batch_size,t,dec_num_unit]
         # attention = [2,batch_size,1,t]
-        hidden = hidden.unsqueeze(2).repeat(1, 1, t, 1)
-        energy = self.attn(torch.cat((hidden, hidden_prev), dim=3))
+        hidden = hidden.repeat(1, t, 1)
+        energy = self.attn(torch.cat((hidden, hidden_prev), dim=2))
         #attention = self.v(energy).transpose(2, 3)
-        attention = energy.transpose(2,3)
-        return F.softmax(attention, dim=3)
+        attention = energy.transpose(1,2)
+        return F.softmax(attention, dim=2)
     def forward(self, received):
         received = received.type(torch.FloatTensor).to(self.this_device)
         # received = [batch_size, block_len, n/k]
-        for t in range(self.args.block_len):
-            # a = [2, batch_size, 1, t]
-            # c = [2, batch_size, 1, dec_num_unit]
-            # hiddens = [2,batch_size,t->t+1,dec_num_unit]
-            # hidden1 = [2,batch_size,1,dec_num_unit]
-            # dec_out1 = [batch_size,1,dec-num_unit]
-            if t == 0:
-                dec_out1, hidden1 = self.dec1_rnns(received[:, t:t + 1, :])
-                dec_out2, hidden2 = self.dec2_rnns(received[:, t:t + 1, :])
-                rnn_out1 = dec_out1
-                rnn_out2 = dec_out2
-                hiddens1 = hidden1.unsqueeze(2)
-                hiddens2 = hidden2.unsqueeze(2)
-            else:
-                dec_out1, hidden1 = self.dec1_rnns(received[:, t:t + 1, :],hidden1)
-                dec_out2, hidden2 = self.dec2_rnns(received[:, t:t + 1, :], hidden2)
-                rnn_out1 = torch.cat((rnn_out1, dec_out1), dim=1)
-                rnn_out2 = torch.cat((rnn_out2, dec_out2), dim=1)
-                a1 = self.attention(hidden1,hiddens1,t)
-                a2 = self.attention(hidden2, hiddens2, t)
-                #c1 = torch.cat((torch.bmm(a1[0].squeeze(0), hiddens1[0].squeeze(0)).unsqueeze(0),torch.bmm(a1[1].squeeze(0), hiddens1[1].squeeze(0)).unsqueeze(0)),dim=0)
-                c1 = torch.matmul(a1,hiddens1)
-                #c2 = torch.cat((torch.bmm(a2[0].squeeze(0), hiddens2[0].squeeze(0)).unsqueeze(0),torch.bmm(a2[1].squeeze(0), hiddens2[1].squeeze(0)).unsqueeze(0)),dim=0)
-                c2 = torch.matmul(a2, hiddens2)
-                hiddens1 = torch.cat((hiddens1, hidden1.unsqueeze(2)), dim=2)
-                hiddens2 = torch.cat((hiddens2, hidden2.unsqueeze(2)), dim=2)
-                hidden1 = self.context(torch.cat((c1.squeeze(2),hidden1),dim=2))
-                hidden2 = self.context(torch.cat((c2.squeeze(2), hidden2), dim=2))
-
+        # rnn_out = [batch_size,block_len,dec_num_unit]
+        rnn_out1, _ = self.dec1_rnns(received)
+        rnn_out2, _ = self.dec2_rnns(received)
+        copy_out1 =torch.zeros_like(rnn_out1)
+        copy_out2 = torch.zeros_like(rnn_out2)
+        copy_out1[:, 0:1, :] = rnn_out1[:, 0:1, :]
+        copy_out2[:,0:1,:] = rnn_out2[:,0:1,:]
+        for t in range(1,self.args.block_len):
+            a1 = self.attention(rnn_out1[:,t:t+1,:],rnn_out1[:,0:t,:],t)
+            c1 = torch.bmm(a1,rnn_out1[:,0:t,:])
+            new_out1 = self.context(torch.cat((c1,rnn_out1[:,t:t+1,:]),dim=2))
+            copy_out1[:,t:t+1,:]= new_out1
+            a2 = self.attention(rnn_out2[:, t:t + 1, :], rnn_out2[:, 0:t, :], t)
+            c2 = torch.bmm(a2,rnn_out2[:,0:t,:])
+            new_out2 = self.context(torch.cat((c2, rnn_out2[:, t:t + 1, :]), dim=2))
+            copy_out2[:, t:t + 1, :] = new_out2
         for i in range(self.args.block_len):
             if (i>=self.args.block_len-self.args.D-1):
                 rt_d = rnn_out2[:,self.args.block_len-1:self.args.block_len,:]
