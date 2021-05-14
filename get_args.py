@@ -122,6 +122,7 @@ def get_args():
                         help='Use pre-computed mean/std statistics')
 
     parser.add_argument('-D', type = int, default=1, help = 'delay')
+    parser.add_argument('-attn_num', type=int, default=5, help='attention')
 
     args = parser.parse_args()
 
