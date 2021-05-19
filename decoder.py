@@ -67,8 +67,8 @@ class DEC(torch.nn.Module):
         rnn_out2, _ = self.dec2_rnns(received)
         copy_out1 =torch.zeros_like(rnn_out1)
         copy_out2 = torch.zeros_like(rnn_out2)
-        copy_out1[:, 0:self.args.attn_num, :] = rnn_out1[:, 0:self.args.attn_num, :]
-        copy_out2[:,0:self.args.attn_num,:] = rnn_out2[:,0:self.args.attn_num,:]
+        copy_out1[:, 0:self.args.attn_num, :] = rnn_out1[:, 0:1, :]
+        copy_out2[:,0:self.args.attn_num,:] = rnn_out2[:,0:1,:]
         for t in range(self.args.attn_num,self.args.block_len):
             a1 = self.attention(rnn_out1[:,t:t+1,:],rnn_out1[:,t-self.args.attn_num:t,:],self.args.attn_num)
             c1 = torch.bmm(a1,rnn_out1[:,t-self.args.attn_num:t,:])
