@@ -1,4 +1,3 @@
-__author__ = '606'
 import torch
 import time
 import torch.nn.functional as F
@@ -8,12 +7,6 @@ from utils import snr_sigma2db, snr_db2sigma, code_power, errors_ber_pos, errors
 import numpy as np
 from numpy import arange
 from numpy.random import mtrand
-
-######################################################################################
-#
-# Trainer, validation, and test for AE code design
-#
-######################################################################################
 
 
 def train(epoch, model, optimizer, args, use_cuda = False, verbose = True, mode = 'encoder'):
@@ -39,7 +32,6 @@ def train(epoch, model, optimizer, args, use_cuda = False, verbose = True, mode 
         X_train    = torch.randint(0, 2, (args.batch_size, block_len, args.code_rate_k), dtype=torch.float)
 
         noise_shape = (args.batch_size, args.block_len, args.code_rate_n)
-        # train encoder/decoder with different SNR... seems to be a good practice.
         if mode == 'encoder':
             fwd_noise  = generate_noise(noise_shape, args, snr_low=args.train_enc_channel_low, snr_high=args.train_enc_channel_high, mode = 'encoder')
         else:
@@ -55,7 +47,6 @@ def train(epoch, model, optimizer, args, use_cuda = False, verbose = True, mode 
 
         else:
             loss = customized_loss(output, X_train, args, noise=fwd_noise, code = code)
-            #loss = F.binary_cross_entropy(output, X_train)
 
         loss.backward()
         train_loss += loss.item()
@@ -132,7 +123,6 @@ def test(model, args, block_len = 'default',use_cuda = False):
     else:
         pass
 
-    # Precomputes Norm Statistics.
     if args.precompute_norm_stats:
         with torch.no_grad():
             num_test_batch = int(args.num_block/(args.batch_size)* args.test_ratio)
@@ -155,7 +145,6 @@ def test(model, args, block_len = 'default',use_cuda = False):
             for batch_idx in range(num_test_batch):
                 X_test     = torch.randint(0, 2, (args.batch_size, block_len, args.code_rate_k), dtype=torch.float)
                 noise_shape = (args.batch_size, args.block_len, args.code_rate_n)
-                # fwd_noise  = generate_noise(X_test.shape, args, test_sigma=sigma)
                 fwd_noise  = generate_noise(noise_shape, args, test_sigma=sigma)
 
                 X_test, fwd_noise= X_test.to(device), fwd_noise.to(device)
@@ -191,7 +180,6 @@ def test(model, args, block_len = 'default',use_cuda = False):
     print('BER', ber_res)
     print('BLER', bler_res)
 
-    # compute adjusted SNR. (some quantization might make power!=1.0)
     enc_power = 0.0
     with torch.no_grad():
         for idx in range(num_test_batch):

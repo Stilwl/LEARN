@@ -1,4 +1,3 @@
-__author__ = '606'
 import torch
 import numpy as np
 import math
@@ -66,7 +65,6 @@ def errors_bler(y_true, y_pred, positions = 'default'):
 
     return bler_err_rate
 
-# note there are a few definitions of SNR. In our result, we stick to the following SNR setup.
 def snr_db2sigma(train_snr):
     return 10**(-train_snr*1.0/20)
 
@@ -77,17 +75,14 @@ def snr_sigma2db(train_sigma):
         return -20.0 * torch.log10(train_sigma)
 
 def generate_noise(noise_shape, args, test_sigma = 'default', snr_low = 0.0, snr_high = 0.0, mode = 'encoder'):
-    # SNRs at training
     if test_sigma == 'default':
         this_sigma_low = snr_db2sigma(snr_low)
         this_sigma_high= snr_db2sigma(snr_high)
-        # mixture of noise sigma.
         this_sigma = (this_sigma_low - this_sigma_high) * torch.rand(noise_shape) + this_sigma_high
 
     else:
         this_sigma = snr_db2sigma(test_sigma)
 
-    # SNRs at testing
     if args.channel == 'awgn':
         fwd_noise  = this_sigma * torch.randn(noise_shape, dtype=torch.float)
 
@@ -103,7 +98,6 @@ def generate_noise(noise_shape, args, test_sigma = 'default', snr_low = 0.0, snr
                     torch.from_numpy(corrupted_signal).type(torch.FloatTensor)
 
     else:
-        # Unspecific channel, use AWGN channel.
         fwd_noise  = this_sigma * torch.randn(noise_shape, dtype=torch.float)
 
     return fwd_noise
@@ -147,7 +141,6 @@ class STEQuantize(torch.autograd.Function):
         if ctx.args.train_channel_mode not in ['group_norm_noisy', 'group_norm_noisy_quantize']:
             grad_input = grad_output.clone()
         else:
-            # Experimental pass gradient noise to encoder.
             grad_noise = snr_db2sigma(ctx.args.fb_noise_snr) * torch.randn(grad_output[0].shape, dtype=torch.float)
             ave_temp   = grad_output.mean(dim=0) + grad_noise
             ave_grad   = torch.stack([ave_temp for _ in range(ctx.args.batch_size)], dim=2).permute(2,0,1)
